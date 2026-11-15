@@ -8,7 +8,7 @@ window.CONFIG = {
   },
 
   // Enlace de la web (el que mandará el email del recordatorio)
-  siteUrl: "https://PON-AQUI-TU-DOMINIO.up.railway.app",
+  siteUrl: "https://amigoinvisible-production-43a02595.up.railway.app/",
 
   // PIN del organizador (solo sirve para cambiar el presupuesto)
   adminPin: "0000",
