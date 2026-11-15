@@ -1,0 +1,25 @@
+name: Recordatorio amigo invisible
+
+on:
+  schedule:
+    - cron: "0 9 * * 2"
+  workflow_dispatch:
+    inputs:
+      forzar:
+        description: "Enviar ahora aunque no sea el día (escribe si)"
+        default: "no"
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install nodemailer@6
+      - run: node scripts/recordatorio.js
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          FORZAR: ${{ github.event.inputs.forzar }}
