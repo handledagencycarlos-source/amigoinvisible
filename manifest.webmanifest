@@ -1,0 +1,17 @@
+{
+  "name": "Amigo Invisible · Navidad",
+  "short_name": "Amigo Invisible",
+  "description": "El amigo invisible de la familia: apúntate, descubre a quién le regalas y chatea en secreto.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f2a22",
+  "theme_color": "#0f2a22",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
