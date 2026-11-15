@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amigo Invisible · Navidad</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎁</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f2a22; --bg2:#14382d; --card:#fbf6ec; --ink:#2b2420; --muted:#7a6e64;
+    --red:#c8322f; --red2:#a8241f; --gold:#e6b450; --green:#2f7d5a; --line:#e8dccb;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:Nunito,system-ui,sans-serif;background:radial-gradient(ellipse at top,#1d4a3b 0%,var(--bg) 60%);color:var(--ink);min-height:100vh;padding-bottom:90px}
+  #snow{position:fixed;inset:0;pointer-events:none;z-index:0}
+  .wrap{max-width:560px;margin:0 auto;padding:16px;position:relative;z-index:1}
+  .demo{background:var(--gold);color:#3a2a08;font-size:13px;font-weight:800;text-align:center;padding:7px 10px;position:relative;z-index:2}
+  .demo button{margin-left:8px;border:0;background:#3a2a08;color:var(--gold);border-radius:20px;padding:3px 10px;font-weight:800;font-size:12px;cursor:pointer}
+  header{text-align:center;color:#fff;padding:22px 0 10px}
+  header .small{letter-spacing:.25em;text-transform:uppercase;font-size:12px;color:var(--gold);font-weight:800}
+  h1{font-family:Fraunces,serif;font-weight:800;font-size:40px;margin:6px 0 2px;line-height:1.05}
+  h2{font-family:Fraunces,serif;font-size:22px;margin:0 0 10px}
+  h3{font-size:15px;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .card{background:var(--card);border-radius:20px;padding:18px;margin:14px 0;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .count{display:flex;gap:8px;justify-content:center;margin:12px 0 4px}
+  .count div{background:var(--red);color:#fff;border-radius:14px;padding:10px 0;width:70px;text-align:center}
+  .count b{display:block;font-family:Fraunces,serif;font-size:28px}
+  .count span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;opacity:.85}
+  .center{text-align:center}
+  .muted{color:var(--muted);font-size:14px}
+  .btn{display:inline-block;border:0;border-radius:14px;padding:13px 18px;font:800 16px Nunito,sans-serif;cursor:pointer;background:var(--red);color:#fff;width:100%;margin-top:10px;transition:transform .1s}
+  .btn:active{transform:scale(.97)}
+  .btn.sec{background:#efe4d2;color:var(--ink)}
+  .btn.green{background:var(--green)}
+  .btn.sm{width:auto;padding:8px 12px;font-size:14px;margin-top:0}
+  label{display:block;font-weight:800;font-size:14px;margin:14px 0 6px}
+  input,select,textarea{width:100%;font:600 16px Nunito,sans-serif;padding:12px;border-radius:12px;border:2px solid var(--line);background:#fff;color:var(--ink)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{border:2px solid var(--line);background:#fff;border-radius:12px;padding:8px 12px;font-weight:800;cursor:pointer;font-size:15px;color:var(--ink)}
+  .chip.on{background:var(--green);border-color:var(--green);color:#fff}
+  .emojis .chip{font-size:22px;padding:6px 9px}
+  .people{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+  .person{background:#fff;border-radius:16px;padding:10px 6px;text-align:center;border:2px solid var(--line);position:relative}
+  .person .e{font-size:32px}
+  .person .n{font-weight:800;font-size:14px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .person .tick{position:absolute;top:4px;right:6px;font-size:14px}
+  .stats{display:flex;gap:10px}
+  .stat{flex:1;background:#fff;border-radius:14px;padding:12px;text-align:center;border:2px solid var(--line)}
+  .stat b{font-family:Fraunces,serif;font-size:26px;display:block;color:var(--red)}
+  .stat span{font-size:12px;color:var(--muted);font-weight:800}
+  .bar{height:14px;background:#efe4d2;border-radius:10px;overflow:hidden;margin-top:8px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--green),#4fb487);border-radius:10px;transition:width .6s}
+  nav{position:fixed;bottom:0;left:0;right:0;background:#0b211a;display:flex;justify-content:center;z-index:5;border-top:1px solid #234a3c}
+  nav button{flex:1;max-width:140px;background:none;border:0;color:#9fbfb2;font:800 12px Nunito,sans-serif;padding:10px 0 14px;cursor:pointer}
+  nav button .i{font-size:22px;display:block}
+  nav button.on{color:var(--gold)}
+  .gift{font-size:110px;cursor:pointer;user-select:none;display:inline-block;transition:transform .2s}
+  .gift.shake{animation:shake .45s}
+  @keyframes shake{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg) scale(1.05)}40%{transform:rotate(12deg) scale(1.1)}60%{transform:rotate(-8deg) scale(1.12)}80%{transform:rotate(6deg)}}
+  .reveal{animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+  .match{background:linear-gradient(160deg,var(--red),var(--red2));color:#fff;border-radius:20px;padding:22px;text-align:center}
+  .match .e{font-size:64px}
+  .match .name{font-family:Fraunces,serif;font-size:34px;font-weight:800}
+  .size{display:inline-block;background:var(--gold);color:#3a2a08;border-radius:12px;padding:8px 16px;font-weight:800;font-size:20px;margin-top:8px}
+  .wish{background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;margin:6px 0;text-align:left;font-weight:600}
+  .chat{background:#f3ece0;border-radius:16px;padding:10px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin:10px 0}
+  .bub{max-width:80%;padding:8px 12px;border-radius:16px;font-weight:600;font-size:15px;line-height:1.3;word-wrap:break-word}
+  .bub.mine{align-self:flex-end;background:var(--green);color:#fff;border-bottom-right-radius:4px}
+  .bub.theirs{align-self:flex-start;background:#fff;border:2px solid var(--line);border-bottom-left-radius:4px}
+  .bub .who{display:block;font-size:11px;font-weight:800;opacity:.7;margin-bottom:2px}
+  .bub .t{display:block;font-size:10px;opacity:.6;text-align:right;margin-top:2px}
+  .chat .empty{color:var(--muted);text-align:center;font-size:14px;padding:16px 0}
+  .row{display:flex;gap:8px;align-items:center}
+  .row > *{flex:1}
+  .toast{position:fixed;left:50%;top:16px;transform:translateX(-50%);background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:20;font-weight:800;max-width:90%;animation:pop .4s}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:15;display:flex;align-items:center;justify-content:center;padding:16px}
+  .modal .card{max-width:440px;width:100%;max-height:90vh;overflow:auto}
+  .mail{border:2px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+  .mail .top{background:#f3ece0;padding:10px 12px;font-size:13px;color:var(--muted)}
+  .mail .body{padding:14px;font-size:15px}
+  .pill{display:inline-block;background:#efe4d2;border-radius:20px;padding:3px 10px;font-size:13px;font-weight:800;margin:2px}
+  .rank{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-weight:700}
+  .tag{font-size:12px;font-weight:800;padding:2px 8px;border-radius:10px;background:#d9efe4;color:var(--green)}
+  .tag.no{background:#f7dcdb;color:var(--red)}
+  .hidden{display:none}
+  a{color:var(--red)}
+  .btn[disabled]{opacity:.6;cursor:wait}
+</style>
+</head>
+<body>
+<canvas id="snow"></canvas>
+<div class="wrap" id="app"></div>
+<nav id="nav"></nav>
+<canvas id="confetti" style="position:fixed;inset:0;pointer-events:none;z-index:30"></canvas>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="config.js"></script>
+<script>
+/* ===================== Amigo Invisible · versión real (Firebase) ===================== */
+const C = window.CONFIG || {};
+const DRAW_AT = new Date(C.drawAt), REVEAL_AT = new Date(C.revealAt);
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rid = (n=10) => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => 'abcdefghijkmnpqrstuvwxyz23456789'[b % 32]).join('');
+const CID = rid(8);
+const SIZES_A = ['XS','S','M','L','XL','XXL','3XL'];
+const SIZES_K = ['4 años','6 años','8 años','10 años','12 años','14 años'];
+const EMOJIS = ['🎅','🤶','🧝','⛄','🦌','🐧','🎄','⭐','🍪','🧸','🐻‍❄️','🦊'];
+
+let db, D = {}, loaded = false;
+let me = null, priv = null, box = null, boxLoading = false;
+let tab = 'home', adminOk = false, revealStep = 0, busy = false, popOnce = false;
+let form = { size:null, emoji:'🎅' };
+
+/* ---------- Sesión recordada en este móvil ---------- */
+function saveSession(id, k){ try{ localStorage.setItem('ai-session', JSON.stringify({id, k})); }catch(e){} }
+function clearSession(){ try{ localStorage.removeItem('ai-session'); }catch(e){} }
+async function restoreSession(){
+  try{ const s = JSON.parse(localStorage.getItem('ai-session')||'null'); if(s){ priv = await importPriv(unb64(s.k)); me = s.id; } }catch(e){ clearSession(); }
+}
+
+/* ---------- Criptografía: cada uno tiene un "buzón" que solo abre su PIN ---------- */
+const enc = new TextEncoder(), dec = new TextDecoder();
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer;
+async function pinKey(pin, salt){
+  const base = await crypto.subtle.importKey('raw', enc.encode('amigo-invisible|'+pin), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:150000, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+}
+async function makeKeys(pin){
+  const kp = await crypto.subtle.generateKey({name:'RSA-OAEP', modulusLength:2048, publicExponent:new Uint8Array([1,0,1]), hash:'SHA-256'}, true, ['encrypt','decrypt']);
+  const pub = JSON.stringify(await crypto.subtle.exportKey('jwk', kp.publicKey));
+  const pk8 = await crypto.subtle.exportKey('pkcs8', kp.privateKey);
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = await crypto.subtle.encrypt({name:'AES-GCM', iv}, await pinKey(pin, salt), pk8);
+  return { pub, wrapped:{ salt:b64(salt), iv:b64(iv), data:b64(data) }, pk8 };
+}
+async function unwrap(pin, w){
+  return crypto.subtle.decrypt({name:'AES-GCM', iv:new Uint8Array(unb64(w.iv))}, await pinKey(pin, new Uint8Array(unb64(w.salt))), unb64(w.data));
+}
+const importPriv = pk8 => crypto.subtle.importKey('pkcs8', pk8, {name:'RSA-OAEP', hash:'SHA-256'}, false, ['decrypt']);
+async function sealFor(pubStr, obj){
+  const k = await crypto.subtle.importKey('jwk', JSON.parse(pubStr), {name:'RSA-OAEP', hash:'SHA-256'}, false, ['encrypt']);
+  return b64(await crypto.subtle.encrypt({name:'RSA-OAEP'}, k, enc.encode(JSON.stringify(obj))));
+}
+async function openBox(s){ return JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'RSA-OAEP'}, priv, unb64(s)))); }
+
+/* ---------- Datos ---------- */
+const people = () => Object.entries(D.people||{}).map(([id,p])=>({id,...p})).sort((a,b)=>(a.joinedAt||0)-(b.joinedAt||0));
+const byId = id => id && D.people?.[id] ? {id, ...D.people[id]} : null;
+const drawn = () => D.draw?.status === 'done';
+const budget = () => D.config?.budget ?? C.budget ?? 25;
+const revealed = () => Date.now() >= REVEAL_AT;
+const msgCount = () => Object.values(D.chats||{}).reduce((n,t)=>n+Object.keys(t||{}).length, 0);
+
+/* ---------- Sorteo (lo hace el primer móvil que abra la web después de la hora) ---------- */
+function derange(ids){
+  for(const avoid2 of [true,false]) for(let t=0;t<5000;t++){
+    const r = ids.slice(); for(let i=r.length-1;i>0;i--){ const j=crypto.getRandomValues(new Uint32Array(1))[0]%(i+1); [r[i],r[j]]=[r[j],r[i]]; }
+    const m = Object.fromEntries(ids.map((g,i)=>[g,r[i]]));
+    if(ids.every(g => m[g]!==g && !(avoid2 && ids.length>3 && m[m[g]]===g))) return m;
+  }
+  return null;
+}
+let drawTrying = false;
+async function maybeDraw(){
+  if(drawTrying || !loaded || drawn() || Date.now() < DRAW_AT || people().length < 3) return;
+  const cur = D.draw; if(cur?.status==='drawing' && Date.now()-cur.at < 60000) return;
+  drawTrying = true;
+  try{
+    const tx = await db.ref('draw').transaction(c => (!c || (c.status==='drawing' && Date.now()-c.at>60000)) ? {status:'drawing', by:CID, at:Date.now()} : undefined);
+    if(!tx.committed || tx.snapshot.val()?.by !== CID) return;
+    const ps = people(), ids = ps.map(p=>p.id), m = derange(ids);
+    const thread = Object.fromEntries(ids.map(id=>[id, rid(16)]));
+    const santaOf = Object.fromEntries(ids.map(g=>[m[g], g]));
+    const up = {};
+    for(const p of ps) up['boxes/'+p.id] = await sealFor(p.pub, {to:m[p.id], out:thread[p.id], in:thread[santaOf[p.id]], from:santaOf[p.id]});
+    up['draw'] = {status:'done', at:Date.now(), n:ids.length};
+    await db.ref().update(up);
+  }catch(e){ console.error(e); } finally{ drawTrying = false; }
+}
+async function loadBox(){
+  if(!me || !priv || box || boxLoading || !drawn() || !D.boxes?.[me]) return;
+  boxLoading = true;
+  try{ box = await openBox(D.boxes[me]); render(); maybeResult(); }catch(e){ console.error('No se pudo abrir el buzón', e); } finally{ boxLoading = false; }
+}
+function maybeResult(){
+  if(!box || !revealed() || !D.guesses?.[me] || D.results?.[me] !== undefined) return;
+  db.ref('results/'+me).set(D.guesses[me] === box.from);
+}
+
+/* ---------- Utilidades de vista ---------- */
+function toast(t){ const d=document.createElement('div'); d.className='toast'; d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),2800); }
+function parts(ms){ ms=Math.max(0,ms); return { d:Math.floor(ms/864e5), h:Math.floor(ms/36e5)%24, m:Math.floor(ms/6e4)%60, s:Math.floor(ms/1e3)%60 }; }
+function countHTML(target){
+  const p = parts(target - Date.now());
+  return `<div class="count" data-count="${target.getTime()}"><div><b>${p.d}</b><span>días</span></div><div><b>${p.h}</b><span>horas</span></div><div><b>${p.m}</b><span>min</span></div><div><b>${p.s}</b><span>seg</span></div></div>`;
+}
+const fmtDate = d => d.toLocaleString('es-ES',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit', timeZone:'Europe/Madrid'});
+function vHeader(sub){ return `<header><div class="small">${esc(C.familyName||'Familia')} · Navidad ${REVEAL_AT.getFullYear()}</div><h1>Amigo Invisible</h1><div style="opacity:.8">${sub||''}</div></header>`; }
+
+/* ---------- Render (conserva lo que estés escribiendo) ---------- */
+function render(){
+  const keep = {}; document.querySelectorAll('#app input, #app select').forEach(i=>{ if(i.id) keep[i.id]=i.value; });
+  const f = document.activeElement?.id;
+  const nav = [['home','🏠','Inicio'],['me','🎁', me?'Mi regalo':(drawn()?'Entrar':'Apuntarme')],['family','👨‍👩‍👧','Familia'],['admin','⚙️','Organizar']];
+  $('#nav').innerHTML = nav.map(([k,i,t])=>`<button class="${tab===k?'on':''}" data-tab="${k}"><span class="i">${i}</span>${t}</button>`).join('');
+  $('#app').innerHTML = !loaded ? vHeader('Cargando…') + `<div class="card center"><p class="muted">Conectando con la familia… 🎄</p></div>` : ({home:vHome, me:vMe, family:vFamily, admin:vAdmin})[tab]();
+  for(const [id,v] of Object.entries(keep)){ const el=document.getElementById(id); if(el && el.type!=='select-one') el.value=v; else if(el && v) el.value=v; }
+  if(f){ const el=document.getElementById(f); if(el){ el.focus(); try{ const n=el.value.length; el.setSelectionRange(n,n); }catch(e){} } }
+  document.querySelectorAll('.chat').forEach(c=>c.scrollTop=c.scrollHeight);
+}
+
+function vHome(){
+  const ps = people(), n = ps.length, bought = ps.filter(p=>p.bought).length;
+  let h = vHeader('👕 Camisetas de broma para toda la familia 😂');
+  if(!drawn()){
+    const late = Date.now() >= DRAW_AT;
+    h += `<div class="card center"><h2>${late?'Haciendo el sorteo…':'El sorteo es en…'}</h2>${late?'<p class="muted">Un momento, se está sorteando 🎲</p>':countHTML(DRAW_AT)}
+      <p class="muted">${fmtDate(DRAW_AT)}. Ese día os avisamos para entrar y ver a quién le hacéis el regalo.</p>
+      ${me ? `<button class="btn green" data-tab="me">Ya estás apuntado/a ✓ · Ver mi zona</button>` : late?'':`<button class="btn" data-tab="me">¡Me apunto! 🎅</button>`}</div>`;
+  } else {
+    h += `<div class="card center">${revealed()?'<h2>¡Feliz Navidad! 🎄</h2><p class="muted">Ya podéis ver quién era el amigo invisible de cada uno.</p>':`<h2>¡Sorteo hecho! 🎉</h2><p class="muted">Cuenta atrás para Nochebuena</p>${countHTML(REVEAL_AT)}`}
+      <button class="btn" data-tab="me">${me?'Ver a quién le regalo 🎁':'Entrar y ver mi amigo invisible'}</button></div>`;
+  }
+  h += `<div class="card"><div class="stats"><div class="stat"><b>${n}</b><span>apuntados</span></div><div class="stat"><b>${budget()}€</b><span>presupuesto</span></div><div class="stat"><b>${msgCount()}</b><span>mensajes anónimos</span></div></div>
+    ${drawn()?`<h3>Termómetro de regalos</h3><div class="bar"><i style="width:${n?bought/n*100:0}%"></i></div><p class="muted" style="margin:6px 0 0">${bought} de ${n} ya tienen la camiseta ${bought===n&&n?'🥳':''}</p>`:''}</div>`;
+  h += `<div class="card"><h2>Quién juega</h2>${n?`<div class="people">${ps.map(p=>`<div class="person">${drawn()&&p.bought?'<span class="tick">✅</span>':''}<div class="e">${p.emoji}</div><div class="n">${esc(p.name)}</div></div>`).join('')}</div>`:'<p class="muted">Todavía no se ha apuntado nadie. ¡Sé el primero!</p>'}</div>`;
+  if(drawn() && revealed()) h += vRanking();
+  return h;
+}
+
+function vMe(){
+  const u = byId(me);
+  if(!u) return drawn() || Date.now() >= DRAW_AT ? vLogin() : vJoin() + vLogin(true);
+  let h = vHeader(`Hola, ${esc(u.name)} ${u.emoji}`);
+  if(!drawn()){
+    h += `<div class="card center"><h2>¡Estás dentro! ✓</h2><p class="muted">Talla apuntada: <b>${esc(u.size)}</b></p>${countHTML(DRAW_AT)}<p class="muted">El ${fmtDate(DRAW_AT)} se hace el sorteo solo y te avisamos.</p></div>`;
+  } else if(!box){
+    h += `<div class="card center"><p class="muted">Abriendo tu buzón secreto… 🔐</p></div>`;
+  } else {
+    const r = byId(box.to);
+    h += revealStep < 3 ? `<div class="card center"><h2>Tu amigo invisible está aquí dentro</h2><div class="gift" id="gift" data-a="tapGift">🎁</div><p class="muted" id="giftHint">Toca el regalo 3 veces para abrirlo</p></div>`
+      : `<div class="card ${popOnce?'reveal':''}"><div class="match"><div style="opacity:.85;font-weight:800">Te ha tocado…</div>
+        <div class="e">${r?.emoji||'🎁'}</div><div class="name">${esc(r?.name||'?')}</div><div class="size">👕 Talla ${esc(r?.size)}</div>
+        <div class="wish" style="text-align:center;margin-top:14px">😂 Toca buscarle una camiseta de broma</div>
+        <div style="opacity:.8;font-size:13px;margin-top:10px">Presupuesto: ${budget()}€ · ¡Que no se entere nadie! 🤫</div></div>
+        <button class="btn ${u.bought?'sec':'green'}" data-a="toggleBought">${u.bought?'Desmarcar · aún no la tengo':'✅ Ya tengo su camiseta'}</button></div>`;
+    if(revealStep >= 3) h += chatCard(box.out, true, `🕵️ Chat secreto con ${esc(r?.name)}`, `Escríbele lo que quieras: pistas, piques, preguntas… Le llega como <b>🎅 Anónimo</b>, nunca sabrá que eres tú.`, ['¡Prepárate, que te vas a reír! 😂','Te estoy vigilando 👀','¿De qué color la quieres?','Pista: no soy quien tú crees 😏'], r?.name);
+    h += chatCard(box.in, false, '📨 Tu amigo invisible te escribe', 'Alguien de la familia te habla en secreto. Puedes contestarle… ¡y tratar de pillarle! 🔍', ['¿Quién eres? 🤨','¡Te voy a pillar!','Ni se te ocurra 😂']);
+    h += vGuess(u);
+  }
+  return h + `<button class="btn sec" data-a="logout">Salir (no soy ${esc(u.name)})</button>`;
+}
+
+function chatCard(thread, iAmSanta, title, sub, quick, otherName){
+  const k = iAmSanta ? 'out' : 'in';
+  const msgs = Object.values(D.chats?.[thread]||{}).sort((a,b)=>a.ts-b.ts);
+  const hhmm = ts => new Date(ts).toLocaleString('es-ES',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  return `<div class="card"><h2>${title}</h2><p class="muted">${sub}</p>
+    <div class="chat">${msgs.length?msgs.map(m=>{ const mine = m.s===iAmSanta; const who = mine ? (iAmSanta?'Tú (anónimo)':'Tú') : (iAmSanta?esc(otherName):'🎅 Anónimo');
+      return `<div class="bub ${mine?'mine':'theirs'}"><span class="who">${who}</span>${esc(m.t)}<span class="t">${hhmm(m.ts)}</span></div>`; }).join('')
+      : `<div class="empty">${iAmSanta?'Aún no le has dicho nada… ¡rompe el hielo! 🧊':'Todavía no te ha escrito nadie 👀'}</div>`}</div>
+    <div class="chips" style="margin-bottom:8px">${quick.map(q=>`<button class="chip" data-a="quick" data-k="${k}" data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div>
+    <form class="row"><input id="in-${k}" placeholder="${iAmSanta?'Escribe en anónimo…':'Contesta…'}" maxlength="200" autocomplete="off"><button class="btn sm ${iAmSanta?'':'green'}" data-a="send" data-k="${k}" data-th="${thread}" data-s="${iAmSanta?1:0}" style="flex:0">Enviar</button></form></div>`;
+}
+
+function vGuess(u){
+  const g = D.guesses?.[u.id];
+  if(revealed()){
+    const s = byId(box.from);
+    return `<div class="card center"><h2>🔓 ¡Desvelado!</h2><p>Tu amigo invisible era…</p><div style="font-size:54px">${s?.emoji}</div><h2>${esc(s?.name)}</h2>${g?`<p>${g===box.from?'🎯 ¡Lo adivinaste!':'❌ Tú apostaste por '+esc(byId(g)?.name)}</p>`:''}</div>`;
+  }
+  return `<div class="card"><h2>🔮 ¿Quién crees que es TU amigo invisible?</h2><p class="muted">Apuesta antes de Nochebuena. El 24 a las 21:00 cada uno descubre quién era el suyo y se ve quién acertó.</p>
+    <select id="guess"><option value="">Elige…</option>${people().filter(p=>p.id!==u.id).map(p=>`<option value="${p.id}" ${g===p.id?'selected':''}>${p.emoji} ${esc(p.name)}</option>`).join('')}</select>
+    <button class="btn" data-a="saveGuess">${g?'Cambiar apuesta':'Apostar'}</button></div>`;
+}
+
+function vRanking(){
+  return `<div class="card"><h2>🏆 ¿Quién adivinó?</h2><p class="muted">Cada uno ve en su zona quién era su amigo invisible.</p>${people().map(p=>{ const r=D.results?.[p.id], v=D.guesses?.[p.id];
+    return `<div class="rank"><span>${p.emoji} ${esc(p.name)}</span><span>${r===true?'🎯 acertó':r===false?'❌ falló':v?'⏳ sin abrir':'— no apostó'}</span></div>`; }).join('')}</div>`;
+}
+
+function vJoin(){
+  return vHeader('Apúntate en 30 segundos') + `<div class="card"><h2>Me apunto 🎅</h2>
+    <label>Tu nombre</label><input id="jName" placeholder="Ej: Tía Mari" maxlength="24">
+    <label>Talla de camiseta</label><div class="chips">${SIZES_A.map(s=>`<button class="chip ${form.size===s?'on':''}" data-a="size" data-s="${s}">${s}</button>`).join('')}</div>
+    <div class="muted" style="margin:8px 0 6px">Peques:</div><div class="chips">${SIZES_K.map(s=>`<button class="chip ${form.size===s?'on':''}" data-a="size" data-s="${s}">${s}</button>`).join('')}</div>
+    <label>Elige tu personaje</label><div class="chips emojis">${EMOJIS.map(e=>`<button class="chip ${form.emoji===e?'on':''}" data-a="emoji" data-e="${e}">${e}</button>`).join('')}</div>
+    <label>Inventa un PIN de 4 números</label><input id="jPin" inputmode="numeric" maxlength="4" placeholder="••••">
+    <p class="muted" style="margin:6px 0 0">⚠️ Apúntalo: es la llave de tu regalo y <b>no se puede recuperar</b>. En este móvil se queda guardado.</p>
+    <label>Email para el recordatorio <span class="muted">(opcional)</span></label><input id="jMail" type="email" placeholder="tu@email.com">
+    <button class="btn" data-a="join" ${busy?'disabled':''}>${busy?'Preparando tu buzón secreto… 🔐':'¡Apuntarme! 🎄'}</button></div>`;
+}
+
+function vLogin(small){
+  if(!people().length) return small ? '' : vHeader('') + `<div class="card center"><p class="muted">No hay nadie apuntado.</p></div>`;
+  return (small?'':vHeader('Entra para ver tu amigo invisible')) + `<div class="card"><h2>${small?'¿Ya te apuntaste? Entra':'Entrar'}</h2>
+    <select id="lWho"><option value="">¿Quién eres?</option>${people().map(p=>`<option value="${p.id}">${p.emoji} ${esc(p.name)}</option>`).join('')}</select>
+    <input id="lPin" inputmode="numeric" maxlength="4" placeholder="Tu PIN" style="margin-top:8px">
+    <button class="btn ${small?'sec':''}" data-a="login" ${busy?'disabled':''}>${busy?'Comprobando…':'Entrar'}</button></div>`;
+}
+
+function vFamily(){
+  const ps = people();
+  return vHeader('La familia al completo') + `<div class="card"><h2>Apuntados (${ps.length})</h2>
+    ${ps.length?ps.map(p=>`<div class="rank"><span>${p.emoji} ${esc(p.name)}</span><span>${drawn()?(p.bought?'<span class="tag">camiseta lista</span>':'<span class="tag no">buscando…</span>'):'<span class="tag">apuntado</span>'}</span></div>`).join(''):'<p class="muted">Nadie aún.</p>'}</div>
+    <div class="card"><h2>📜 Normas</h2><p>👕 El regalo: <b>una camiseta de broma</b><br>🎁 Presupuesto máximo: <b>${budget()}€</b><br>🤫 No digas a nadie quién te ha tocado<br>📏 Usa la talla que puso tu persona<br>🕵️ Puedes escribirle en anónimo desde el chat secreto<br>🔮 Apuesta quién es tu amigo invisible… ¡en Nochebuena se desvela!</p></div>`;
+}
+
+function waText(){ return `🎅 ¡Ya está hecho el sorteo del Amigo Invisible! 🎁\n\nEntrad aquí con vuestro PIN para ver a quién os ha tocado (y su talla de camiseta 👕):\n${location.href.split('#')[0]}\n\nPresupuesto: ${budget()}€ · ¡Que no se entere nadie! 🤫`; }
+function vAdmin(){
+  if(!adminOk) return vHeader('Zona del organizador') + `<div class="card"><h2>🔐 Organizador</h2><p class="muted">Solo para cambiar el presupuesto.</p><input id="aPin" inputmode="numeric" maxlength="8" placeholder="PIN organizador"><button class="btn" data-a="adminLogin">Entrar</button></div>`;
+  return vHeader('Zona del organizador') + `<div class="card"><h2>💶 Presupuesto</h2>
+    <p class="muted">El sorteo es automático y secreto: nadie, ni el organizador, puede ver a quién le ha tocado cada uno.</p>
+    <label>Presupuesto máximo por camiseta (€)</label><input id="cBudget" type="number" min="1" value="${budget()}">
+    <button class="btn green" data-a="saveBudget">Guardar presupuesto</button></div>
+    <div class="card"><h2>📲 Aviso por WhatsApp</h2><p class="muted">Por si alguien no ha puesto email: copia este mensaje y mándalo al grupo a las 10:00 del martes.</p>
+    <div class="mail"><div class="body" style="white-space:pre-line">${esc(waText())}</div></div>
+    <div class="row" style="margin-top:10px"><button class="btn sec sm" data-a="copyWa">📋 Copiar</button><a class="btn green sm" style="text-align:center;text-decoration:none" href="https://wa.me/?text=${encodeURIComponent(waText())}" target="_blank" rel="noopener">Abrir WhatsApp</a></div>
+    <p class="muted" style="margin-top:12px">${people().length} apuntados · ${people().filter(p=>p.email).length} con email · sorteo ${drawn()?'hecho ✓':'pendiente'}</p>
+    <button class="btn sec" data-a="adminLogout">Salir</button></div>`;
+}
+
+/* ---------- Acciones ---------- */
+const A = {
+  size:e=>{ form.size=e.dataset.s; render(); },
+  emoji:e=>{ form.emoji=e.dataset.e; render(); },
+  async join(){
+    if(busy) return;
+    const name=$('#jName').value.trim(), pin=$('#jPin').value.trim(), email=$('#jMail').value.trim();
+    if(!name) return toast('Pon tu nombre 🙂');
+    if(!form.size) return toast('Elige tu talla de camiseta 👕');
+    if(!/^\d{4}$/.test(pin)) return toast('El PIN tiene que ser de 4 números');
+    if(email && !/^\S+@\S+\.\S+$/.test(email)) return toast('Ese email no parece válido');
+    if(people().some(p=>p.name.toLowerCase()===name.toLowerCase())) return toast('Ese nombre ya está apuntado');
+    if(Date.now() >= DRAW_AT) return toast('Las inscripciones ya están cerradas');
+    busy=true; render();
+    try{
+      const k = await makeKeys(pin), id = rid(8);
+      await db.ref('people/'+id).set({name, size:form.size, emoji:form.emoji, email:email||null, bought:false, pub:k.pub, wrapped:k.wrapped, joinedAt:Date.now()});
+      priv = await importPriv(k.pk8); me = id; saveSession(id, b64(k.pk8)); form={size:null,emoji:'🎅'};
+      busy=false; render(); confetti(); toast('¡Apuntado/a! 🎉');
+    }catch(e){ console.error(e); busy=false; render(); toast('Algo ha fallado, inténtalo otra vez'); }
+  },
+  async login(){
+    if(busy) return;
+    const p = byId($('#lWho').value), pin = $('#lPin').value.trim();
+    if(!p) return toast('Elige tu nombre');
+    busy=true; render();
+    try{ const pk8 = await unwrap(pin, p.wrapped); priv = await importPriv(pk8); me = p.id; box=null; revealStep=0; saveSession(p.id, b64(pk8)); busy=false; render(); loadBox(); }
+    catch(e){ busy=false; render(); toast('PIN incorrecto 🔒'); }
+  },
+  logout(){ me=null; priv=null; box=null; revealStep=0; clearSession(); render(); },
+  tapGift(){
+    const g=$('#gift'); g.classList.remove('shake'); void g.offsetWidth; g.classList.add('shake'); revealStep++;
+    if(revealStep>=3) setTimeout(()=>{ popOnce=true; render(); popOnce=false; confetti(); },450); else $('#giftHint').textContent=['','¡Otra vez!','¡Una más! 🥁'][revealStep];
+  },
+  toggleBought(){ const u=byId(me); db.ref('people/'+me+'/bought').set(!u.bought); if(!u.bought){ confetti(); toast('¡Bien! Uno menos 🎉'); } },
+  quick:e=>{ const i=$('#in-'+e.dataset.k); i.value=e.dataset.q; i.focus(); },
+  send:e=>{ const i=$('#in-'+e.dataset.k), t=i.value.trim(); if(!t) return; i.value='';
+    db.ref('chats/'+e.dataset.th).push({s:e.dataset.s==='1', t:t.slice(0,200), ts:Date.now()}); },
+  saveGuess(){ const v=$('#guess').value; if(!v) return; db.ref('guesses/'+me).set(v); toast('Apuesta guardada 🔮'); },
+  adminLogin(){ if($('#aPin').value===String(C.adminPin)){ adminOk=true; render(); } else toast('PIN incorrecto'); },
+  adminLogout(){ adminOk=false; render(); },
+  saveBudget(){ const b=Math.round(+$('#cBudget').value); if(!(b>0)) return toast('Pon un número válido'); db.ref('config/budget').set(b); toast('Presupuesto guardado ✓'); },
+  async copyWa(){ try{ await navigator.clipboard.writeText(waText()); toast('Copiado 📋'); }catch(e){ toast('No se pudo copiar, selecciónalo a mano'); } }
+};
+document.addEventListener('submit', e=>{ e.preventDefault(); const b=e.target.querySelector('[data-a="send"]'); if(b) A.send(b); });
+document.addEventListener('click', e=>{
+  const t=e.target.closest('[data-tab]'); if(t){ tab=t.dataset.tab; render(); scrollTo(0,0); return; }
+  const a=e.target.closest('[data-a]'); if(a && A[a.dataset.a]){ e.preventDefault(); A[a.dataset.a](a); }
+});
+
+/* ---------- Reloj, nieve y confeti ---------- */
+setInterval(()=>{
+  document.querySelectorAll('[data-count]').forEach(c=>{ const p=parts(+c.dataset.count-Date.now()); const b=c.querySelectorAll('b'); [p.d,p.h,p.m,p.s].forEach((v,i)=>b[i].textContent=v); if(+c.dataset.count<=Date.now()){ c.removeAttribute('data-count'); setTimeout(render,1500); } });
+  maybeDraw();
+},1000);
+(function snow(){
+  const c=$('#snow'), x=c.getContext('2d'); let W,H; const f=[];
+  const rs=()=>{ W=c.width=innerWidth; H=c.height=innerHeight; }; rs(); addEventListener('resize',rs);
+  for(let i=0;i<70;i++) f.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*2.5+1,s:Math.random()*.6+.3,w:Math.random()*Math.PI});
+  (function loop(){ x.clearRect(0,0,W,H); x.fillStyle='rgba(255,255,255,.7)'; f.forEach(p=>{ p.y+=p.s; p.w+=.01; p.x+=Math.sin(p.w)*.4; if(p.y>H){p.y=-5;p.x=Math.random()*W;} x.beginPath(); x.arc(p.x,p.y,p.r,0,7); x.fill(); }); requestAnimationFrame(loop); })();
+})();
+function confetti(){
+  const c=$('#confetti'), x=c.getContext('2d'); c.width=innerWidth; c.height=innerHeight;
+  const cols=['#c8322f','#e6b450','#2f7d5a','#fff','#4fb487'];
+  const ps=Array.from({length:140},()=>({x:innerWidth/2,y:innerHeight/2.5,vx:(Math.random()-.5)*14,vy:Math.random()*-14-4,r:Math.random()*6+3,c:cols[Math.random()*5|0],a:Math.random()*6}));
+  let t=0; (function loop(){ x.clearRect(0,0,c.width,c.height); ps.forEach(p=>{ p.vy+=.35; p.x+=p.vx; p.y+=p.vy; p.a+=.2; x.save(); x.translate(p.x,p.y); x.rotate(p.a); x.fillStyle=p.c; x.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6); x.restore(); }); if(++t<120) requestAnimationFrame(loop); else x.clearRect(0,0,c.width,c.height); })();
+}
+
+/* ---------- Arranque ---------- */
+(async function start(){
+  if(!C.firebase || String(C.firebase.apiKey).includes('PEGA_AQUI') || typeof firebase==='undefined'){
+    $('#app').innerHTML = vHeader('') + `<div class="card"><h2>⚙️ Falta un paso</h2><p>Abre <b>config.js</b> y pega los datos de Firebase (mira el README, paso 1).</p></div>`; return;
+  }
+  firebase.initializeApp(C.firebase); db = firebase.database();
+  await restoreSession();
+  render();
+  db.ref().on('value', snap => {
+    D = snap.val() || {}; loaded = true;
+    if(me && !D.people?.[me]){ me=null; priv=null; box=null; clearSession(); }
+    render(); loadBox(); maybeResult(); maybeDraw();
+  }, err => { $('#app').innerHTML = vHeader('') + `<div class="card"><h2>No se puede conectar</h2><p class="muted">${esc(err.message)}</p><p>Revisa las reglas de Firebase (README, paso 1).</p></div>`; });
+})();
+</script>
+</body>
+</html>
