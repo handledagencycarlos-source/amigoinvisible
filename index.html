@@ -120,7 +120,7 @@ const SIZES_K = ['4 años','6 años','8 años','10 años','12 años','14 años']
 const EMOJIS = ['🎅','🤶','🧝','⛄','🦌','🐧','🎄','⭐','🍪','🧸','🐻‍❄️','🦊'];
 
 let db, D = {}, loaded = false;
-let me = null, priv = null, box = null, boxLoading = false;
+let me = null, priv = null, box = null, boxLoading = false, boxRound = 0;
 let tab = 'home', adminOk = false, revealStep = 0, busy = false, popOnce = false;
 let form = { size:null, emoji:'🎅' };
 
@@ -191,10 +191,89 @@ async function maybeDraw(){
     await db.ref().update(up);
   }catch(e){ console.error(e); } finally{ drawTrying = false; }
 }
+/* ---------- Repetir sorteo (manteniendo a algunos) ----------
+   1) El organizador elige quién mantiene su amigo invisible.
+   2) Al abrir la app, el móvil de cada uno de ellos deja reservada (en secreto) a su persona.
+   3) Cuando todos han confirmado, el primer móvil que esté abierto sortea al resto. */
+const R = () => D.redraw || {};
+const round = () => R().status === 'done' ? 2 : 1;
+const isKeeper = id => (R().keep || []).includes(id);
+const redrawPending = () => R().status === 'collecting' || R().status === 'drawing';
 async function loadBox(){
-  if(!me || !priv || box || boxLoading || !drawn() || !D.boxes?.[me]) return;
+  if(!me || !priv || boxLoading || !drawn()) return;
+  const rnd = round();
+  if(box && boxRound === rnd) return;
   boxLoading = true;
-  try{ box = await openBox(D.boxes[me]); render(); maybeResult(); }catch(e){ console.error('No se pudo abrir el buzón', e); } finally{ boxLoading = false; }
+  try{
+    if(rnd === 2){
+      if(!D.give2?.[me] || !D.get2?.[me]) return;
+      const g = await openBox(D.give2[me]), r = await openBox(D.get2[me]);
+      if(boxRound === 1 && !isKeeper(me)){ revealStep = 0; toast('🎲 ¡Nuevo sorteo! Abre tu regalo'); }
+      box = {to:g.to, out:g.out, in:r.in, from:r.from};
+    } else {
+      if(!D.boxes?.[me]) return;
+      box = await openBox(D.boxes[me]);
+    }
+    boxRound = rnd; render(); maybeResult(); maybeKeep();
+  }catch(e){ console.error('No se pudo abrir el buzón', e); } finally{ boxLoading = false; }
+}
+async function pairHash(g, r){ return b64(await crypto.subtle.digest('SHA-256', enc.encode(g+'>'+r+'|'+R().at))); }
+let keeping = false;
+async function maybeKeep(){
+  if(keeping || R().status !== 'collecting' || R().confirmed?.[me] || !box || boxRound !== 1) return;
+  keeping = true;
+  try{
+    if(isKeeper(me)){
+      const rec = byId(box.to); if(!rec) return;
+      await db.ref().update({
+        ['lock/'+box.to]: true,
+        ['give2/'+me]: await sealFor(byId(me).pub, {to:box.to, out:box.out}),
+        ['get2/'+box.to]: await sealFor(rec.pub, {in:box.out, from:me}),
+        ['redraw/confirmed/'+me]: true
+      });
+    } else {
+      // Deja una "huella" de su pareja antigua para que no le vuelva a tocar la misma (nadie puede leerla)
+      await db.ref().update({ ['avoid/'+me]: await pairHash(me, box.to), ['redraw/confirmed/'+me]: true });
+    }
+  }catch(e){ console.error(e); } finally{ keeping = false; }
+}
+function derangeInto(givers, pool, banned){
+  for(let t=0;t<20000;t++){
+    const r = pool.slice(); for(let i=r.length-1;i>0;i--){ const j=crypto.getRandomValues(new Uint32Array(1))[0]%(i+1); [r[i],r[j]]=[r[j],r[i]]; }
+    if(givers.every((g,i)=>r[i]!==g && !banned.has(g+'>'+r[i]))) return Object.fromEntries(givers.map((g,i)=>[g,r[i]]));
+  }
+  return null;
+}
+let redrawing = false;
+async function maybeRedraw(){
+  const rd = R();
+  if(redrawing || !loaded || !rd.status) return;
+  const keep = rd.keep || [];
+  if(rd.status === 'collecting' && !rd.force && !people().every(p => rd.confirmed?.[p.id])) return;
+  if(rd.status === 'collecting' && !keep.every(k => rd.confirmed?.[k])) return;
+  if(rd.status === 'drawing' && Date.now() - rd.at < 60000) return;
+  if(rd.status !== 'collecting' && rd.status !== 'drawing') return;
+  redrawing = true;
+  try{
+    const tx = await db.ref('redraw').transaction(c => (c && (c.status==='collecting' || (c.status==='drawing' && Date.now()-c.at>60000))) ? {...c, status:'drawing', by:CID, at:Date.now()} : undefined);
+    if(!tx.committed || tx.snapshot.val()?.by !== CID) return;
+    const ids = people().map(p=>p.id), locked = Object.keys(D.lock||{});
+    const givers = ids.filter(id => !keep.includes(id)), pool = ids.filter(id => !locked.includes(id));
+    const banned = new Set();
+    for(const g of givers) if(D.avoid?.[g]) for(const r of pool) if(await pairHash(g, r) === D.avoid[g]) banned.add(g+'>'+r);
+    const m = givers.length === pool.length ? (derangeInto(givers, pool, banned) || derangeInto(givers, pool, new Set())) : null;
+    if(!m){ await db.ref('redraw').update({status:'error', at:Date.now()}); return; }
+    const up = {};
+    for(const g of givers){
+      const r = m[g], t = rid(16);
+      up['give2/'+g] = await sealFor(byId(g).pub, {to:r, out:t});
+      up['get2/'+r] = await sealFor(byId(r).pub, {in:t, from:g});
+      up['people/'+g+'/bought'] = false;
+    }
+    for(const r of pool){ up['guesses/'+r] = null; up['results/'+r] = null; }
+    up['redraw/status'] = 'done'; up['redraw/at'] = Date.now();
+    await db.ref().update(up);
+  }catch(e){ console.error(e); } finally{ redrawing = false; }
 }
 function maybeResult(){
   if(!box || !revealed() || !D.guesses?.[me] || D.results?.[me] !== undefined) return;
@@ -271,10 +350,16 @@ function vMe(){
   let h = vHeader(`Hola, ${esc(u.name)} ${u.emoji}`);
   if(!drawn()){
     h += `<div class="card center"><h2>¡Estás dentro! ✓</h2><p class="muted">Talla apuntada: <b>${esc(u.size)}</b></p>${countHTML(DRAW_AT)}<p class="muted">El ${fmtDate(DRAW_AT)} se hace el sorteo solo y te avisamos.</p></div>`;
+  } else if(redrawPending() && !isKeeper(me)){
+    const all = people(), ok = all.filter(p=>R().confirmed?.[p.id]).length, left = all.length - ok;
+    h += `<div class="card center"><h2>🎲 Se repite el sorteo</h2><p>Te va a tocar una persona <b>distinta</b> a la de antes.</p>
+      ${countBar(ok, all.length)}
+      <p class="muted">${R().confirmed?.[me]?'✓ Ya estás listo/a.':'Preparándote…'} Falta${left===1?'':'n'} ${left} persona${left===1?'':'s'} por abrir la app. En cuanto estén todos, se sortea solo y aquí verás tu nuevo regalo.</p></div>`;
   } else if(!box){
     h += `<div class="card center"><p class="muted">Abriendo tu buzón secreto… 🔐</p></div>`;
   } else {
     const r = byId(box.to);
+    if(redrawPending() && isKeeper(me)) h += `<div class="card center"><h2>🔒 Tu amigo invisible se mantiene</h2><p class="muted">Se está repitiendo el sorteo para los demás, pero tú sigues con la misma persona. ${R().confirmed?.[me]?'✓ Confirmado.':'Confirmando…'}</p></div>`;
     h += revealStep < 3 ? `<div class="card center"><h2>Tu amigo invisible está aquí dentro</h2><div class="gift" id="gift" data-a="tapGift">🎁</div><p class="muted" id="giftHint">Toca el regalo 3 veces para abrirlo</p></div>`
       : `<div class="card ${popOnce?'reveal':''}"><div class="match"><div style="opacity:.85;font-weight:800">Te ha tocado…</div>
         <div class="e">${r?.emoji||'🎁'}</div><div class="name">${esc(r?.name||'?')}</div><div class="size">👕 Talla ${esc(r?.size)}</div>
@@ -343,14 +428,37 @@ function vFamily(){
     <div class="card"><h2>📜 Normas</h2><p>👕 El regalo: <b>una camiseta de broma</b><br>🎁 Presupuesto máximo: <b>${budget()}€</b><br>🤫 No digas a nadie quién te ha tocado<br>📏 Usa la talla que puso tu persona<br>🕵️ Puedes escribirle en anónimo desde el chat secreto<br>🔮 Apuesta quién es tu amigo invisible… ¡en Nochebuena se desvela!</p></div>`;
 }
 
-function waText(){ return `🎅 ¡Ya está hecho el sorteo del Amigo Invisible! 🎁\n\nEntrad aquí con vuestro PIN para ver a quién os ha tocado (y su talla de camiseta 👕):\n${location.href.split('#')[0]}\n\nPresupuesto: ${budget()}€ · ¡Que no se entere nadie! 🤫`; }
+function waText(){ if(redrawPending() || R().status==='done') return `🎲 ¡Se repite el sorteo del Amigo Invisible!\n\nEntrad en la app para ver a quién os toca ahora. Hasta que no entremos todos no se sortea, ¡así que no tardéis! 😉\n${location.href.split('#')[0]}`;
+  return `🎅 ¡Ya está hecho el sorteo del Amigo Invisible! 🎁\n\nEntrad aquí con vuestro PIN para ver a quién os ha tocado (y su talla de camiseta 👕):\n${location.href.split('#')[0]}\n\nPresupuesto: ${budget()}€ · ¡Que no se entere nadie! 🤫`; }
+const countBar = (ok, n) => `<div class="bar"><i style="width:${n?ok/n*100:0}%"></i></div><p class="muted" style="margin:6px 0 10px">${ok} de ${n} listos</p>`;
+function vAdminRedraw(){
+  const rd = R(), ps = people();
+  if(redrawPending()){
+    const k = rd.keep||[], ok = ps.filter(p=>rd.confirmed?.[p.id]).length, keepOk = k.every(x=>rd.confirmed?.[x]);
+    return `<div class="card"><h2>🎲 Repitiendo el sorteo…</h2>
+      <p class="muted">Cada uno tiene que <b>abrir la app una vez</b> (sin pulsar nada). Así los que mantienen guardan su persona y a los demás no les vuelve a tocar la misma.</p>
+      ${countBar(ok, ps.length)}
+      ${ps.map(p=>`<div class="rank"><span>${p.emoji} ${esc(p.name)} <span class="muted">${k.includes(p.id)?'🔒 mantiene':'🎲 nuevo'}</span></span><span>${rd.confirmed?.[p.id]?'✅':'⏳'}</span></div>`).join('')}
+      <p class="muted" style="margin-top:10px">Cuando estén todos, se sortea solo. Nadie ve las parejas.</p>
+      ${keepOk && ok < ps.length ? `<button class="btn" data-a="forceRedraw">Sortear ya sin esperar al resto</button><p class="muted">Ojo: a quien no haya abierto la app podría repetirle la misma persona.</p>` : ''}
+      ${!keepOk ? `<p class="muted">⚠️ Los 🔒 tienen que abrirla sí o sí antes de sortear.</p>` : ''}
+      <button class="btn sec" data-a="cancelRedraw">Cancelar</button></div>`;
+  }
+  const sel = (rd.status==='done'||rd.status==='error') ? [] : (window._keepSel||[]);
+  return `<div class="card"><h2>🎲 Repetir el sorteo</h2>
+    ${rd.status==='done'?'<p class="tag">✓ Sorteo repetido</p>':''}${rd.status==='error'?'<p class="tag no">No salió un sorteo válido. Prueba con otras personas.</p>':''}
+    <p class="muted">Marca quién <b>mantiene</b> a su amigo invisible. A todos los demás les tocará una persona nueva. Nadie (ni tú) verá las parejas.</p>
+    ${ps.map(p=>`<label class="rank" style="margin:0;font-weight:700;cursor:pointer"><span>${p.emoji} ${esc(p.name)}</span><input type="checkbox" class="keepBox" value="${p.id}" style="width:22px;height:22px" ${sel.includes(p.id)?'checked':''}></label>`).join('')}
+    <button class="btn" data-a="startRedraw">🎲 Repetir sorteo para los demás</button></div>`;
+}
 function vAdmin(){
   if(!adminOk) return vHeader('Zona del organizador') + `<div class="card"><h2>🔐 Organizador</h2><p class="muted">Solo para cambiar el presupuesto.</p><input id="aPin" inputmode="numeric" maxlength="8" placeholder="PIN organizador"><button class="btn" data-a="adminLogin">Entrar</button></div>`;
   return vHeader('Zona del organizador') + `<div class="card"><h2>💶 Presupuesto</h2>
     <p class="muted">El sorteo es automático y secreto: nadie, ni el organizador, puede ver a quién le ha tocado cada uno.</p>
     <label>Presupuesto máximo por camiseta (€)</label><input id="cBudget" type="number" min="1" value="${budget()}">
     <button class="btn green" data-a="saveBudget">Guardar presupuesto</button></div>
-    <div class="card"><h2>📲 Aviso por WhatsApp</h2><p class="muted">Por si alguien no ha puesto email: copia este mensaje y mándalo al grupo a las 10:00 del martes.</p>
+    ${drawn()?vAdminRedraw():''}
+    <div class="card"><h2>📲 Aviso por WhatsApp</h2><p class="muted">${redrawPending()?'Manda esto al grupo para que todos abran la app y se pueda repetir el sorteo.':'Por si alguien no ha puesto email: copia este mensaje y mándalo al grupo.'}</p>
     <div class="mail"><div class="body" style="white-space:pre-line">${esc(waText())}</div></div>
     <div class="row" style="margin-top:10px"><button class="btn sec sm" data-a="copyWa">📋 Copiar</button><a class="btn green sm" style="text-align:center;text-decoration:none" href="https://wa.me/?text=${encodeURIComponent(waText())}" target="_blank" rel="noopener">Abrir WhatsApp</a></div>
     <p class="muted" style="margin-top:12px">${people().length} apuntados · ${people().filter(p=>p.email).length} con email · sorteo ${drawn()?'hecho ✓':'pendiente'}</p>
@@ -383,10 +491,10 @@ const A = {
     const p = byId($('#lWho').value), pin = $('#lPin').value.trim();
     if(!p) return toast('Elige tu nombre');
     busy=true; render();
-    try{ const pk8 = await unwrap(pin, p.wrapped); priv = await importPriv(pk8); me = p.id; box=null; revealStep=0; saveSession(p.id, b64(pk8)); busy=false; render(); loadBox(); }
+    try{ const pk8 = await unwrap(pin, p.wrapped); priv = await importPriv(pk8); me = p.id; box=null; boxRound=0; revealStep=0; saveSession(p.id, b64(pk8)); busy=false; render(); loadBox(); }
     catch(e){ busy=false; render(); toast('PIN incorrecto 🔒'); }
   },
-  logout(){ me=null; priv=null; box=null; revealStep=0; clearSession(); render(); },
+  logout(){ me=null; priv=null; box=null; boxRound=0; revealStep=0; clearSession(); render(); },
   tapGift(){
     const g=$('#gift'); g.classList.remove('shake'); void g.offsetWidth; g.classList.add('shake'); revealStep++;
     if(revealStep>=3) setTimeout(()=>{ popOnce=true; render(); popOnce=false; confetti(); },450); else $('#giftHint').textContent=['','¡Otra vez!','¡Una más! 🥁'][revealStep];
@@ -403,9 +511,22 @@ const A = {
   closeModal(){ document.querySelectorAll('.modal').forEach(m=>m.remove()); },
   adminLogin(){ if($('#aPin').value===String(C.adminPin)){ adminOk=true; render(); } else toast('PIN incorrecto'); },
   adminLogout(){ adminOk=false; render(); },
+  startRedraw(){
+    const keep = [...document.querySelectorAll('.keepBox:checked')].map(i=>i.value);
+    window._keepSel = keep;
+    const n = people().length - keep.length;
+    if(n < 2) return toast('Tienen que quedar al menos 2 personas para sortear');
+    if(!window._confirmRedraw){ window._confirmRedraw = true; toast(`Pulsa otra vez para confirmar: mantienen ${keep.length}, se sortean ${n}`); setTimeout(()=>window._confirmRedraw=false, 6000); return; }
+    window._confirmRedraw = false;
+    db.ref().update({ redraw:{status:'collecting', keep, at:Date.now(), confirmed:null}, lock:null, give2:null, get2:null, avoid:null });
+    toast('🎲 Sorteo en marcha. Avisa a todos para que abran la app (abajo tienes el mensaje de WhatsApp)');
+  },
+  cancelRedraw(){ db.ref().update({ redraw:null, lock:null, give2:null, get2:null, avoid:null }); toast('Cancelado'); },
+  forceRedraw(){ db.ref('redraw/force').set(true); toast('🎲 Sorteando…'); },
   saveBudget(){ const b=Math.round(+$('#cBudget').value); if(!(b>0)) return toast('Pon un número válido'); db.ref('config/budget').set(b); toast('Presupuesto guardado ✓'); },
   async copyWa(){ try{ await navigator.clipboard.writeText(waText()); toast('Copiado 📋'); }catch(e){ toast('No se pudo copiar, selecciónalo a mano'); } }
 };
+document.addEventListener('change', e=>{ if(e.target.classList?.contains('keepBox')) window._keepSel=[...document.querySelectorAll('.keepBox:checked')].map(i=>i.value); });
 document.addEventListener('submit', e=>{ e.preventDefault(); const b=e.target.querySelector('[data-a="send"]'); if(b) A.send(b); });
 document.addEventListener('click', e=>{
   const t=e.target.closest('[data-tab]'); if(t){ tab=t.dataset.tab; render(); scrollTo(0,0); return; }
@@ -415,7 +536,7 @@ document.addEventListener('click', e=>{
 /* ---------- Reloj, nieve y confeti ---------- */
 setInterval(()=>{
   document.querySelectorAll('[data-count]').forEach(c=>{ const p=parts(+c.dataset.count-Date.now()); const b=c.querySelectorAll('b'); [p.d,p.h,p.m,p.s].forEach((v,i)=>b[i].textContent=v); if(+c.dataset.count<=Date.now()){ c.removeAttribute('data-count'); setTimeout(render,1500); } });
-  maybeDraw();
+  maybeDraw(); maybeRedraw();
 },1000);
 (function snow(){
   const c=$('#snow'), x=c.getContext('2d'); let W,H; const f=[];
@@ -442,7 +563,7 @@ if('serviceWorker' in navigator) addEventListener('load', () => navigator.servic
   db.ref().on('value', snap => {
     D = snap.val() || {}; loaded = true;
     if(me && !D.people?.[me]){ me=null; priv=null; box=null; clearSession(); }
-    render(); loadBox(); maybeResult(); maybeDraw();
+    render(); loadBox(); maybeResult(); maybeDraw(); maybeKeep(); maybeRedraw();
   }, err => { $('#app').innerHTML = vHeader('') + `<div class="card"><h2>No se puede conectar</h2><p class="muted">${esc(err.message)}</p><p>Revisa las reglas de Firebase (README, paso 1).</p></div>`; });
 })();
 </script>

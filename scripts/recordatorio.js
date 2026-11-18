@@ -8,7 +8,7 @@ const ctx = { window: {} };
 vm.runInNewContext(fs.readFileSync('config.js', 'utf8'), ctx);
 const C = ctx.window.CONFIG;
 const DB = C.firebase.databaseURL.replace(/\/$/, '');
-const SITE = `https://${process.env.GITHUB_REPOSITORY_OWNER}.github.io/${(process.env.GITHUB_REPOSITORY || '').split('/')[1]}/`;
+const SITE = (C.siteUrl && !C.siteUrl.includes('PON-AQUI')) ? C.siteUrl : `https://${process.env.GITHUB_REPOSITORY_OWNER}.github.io/${(process.env.GITHUB_REPOSITORY || '').split('/')[1]}/`;
 
 (async () => {
   const hoy = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
